@@ -1,0 +1,1439 @@
+import 'package:flutter/material.dart';
+
+class ResponsiveMainLayout extends StatefulWidget {
+  const ResponsiveMainLayout({super.key});
+
+  @override
+  State<ResponsiveMainLayout> createState() => _ResponsiveMainLayoutState();
+}
+
+class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
+  int _selectedIndex = 0;
+  String _selectedCategory = 'All';
+  double _searchRadiusKm = 1.5;
+
+  // Category Names
+  final List<String> _categories = [
+    'All',
+    'Tools',
+    'Camping',
+    'Garden',
+    'Kitchen',
+    'Party',
+  ];
+
+  // Defined Color Palettes per Category
+  final Map<String, Map<String, Color>> _themeColors = {
+    'Tools': {'primary': Colors.teal.shade700, 'bg': Colors.teal.shade50},
+    'Camping': {'primary': Colors.orange.shade800, 'bg': Colors.orange.shade50},
+    'Garden': {'primary': Colors.green.shade700, 'bg': Colors.green.shade50},
+    'Kitchen': {'primary': Colors.blue.shade800, 'bg': Colors.blue.shade50},
+    'Party': {'primary': Colors.pink.shade700, 'bg': Colors.pink.shade100},
+    'Storage': {'primary': Colors.purple.shade700, 'bg': Colors.purple.shade100},
+    'Default': {'primary': Colors.grey.shade700, 'bg': Colors.grey.shade100},
+  };
+
+  // mga potang inang data
+  final List<Map<String, dynamic>> _items = [
+    {
+      'title': 'Bosch Cordless Power Drill',
+      'category': 'Tools',
+      'owner': 'Alex M. (0.3 km away)',
+      'type': 'Borrow',
+      'status': 'Available Today',
+      'icon': Icons.build_rounded,
+    },
+    {
+      'title': '4-Person Camping Tent',
+      'category': 'Camping',
+      'owner': 'Sarah K. (0.8 km away)',
+      'type': 'Borrow',
+      'status': 'Available Weekend',
+      'icon': Icons.cabin_rounded,
+    },
+    {
+      'title': 'Electric Lawn Mower',
+      'category': 'Garden',
+      'owner': 'David L. (0.5 km away)',
+      'type': 'Borrow',
+      'status': 'Available Today',
+      'icon': Icons.grass_rounded,
+    },
+    {
+      'title': 'High-Yield Blender (Ninja)',
+      'category': 'Kitchen',
+      'owner': 'Maya B. (0.1 km away)',
+      'type': 'Borrow',
+      'status': 'Borrowable',
+      'icon': Icons.soup_kitchen_rounded,
+    },
+    {
+      'title': 'Moving Cardboard Boxes (x10)',
+      'category': 'Storage',
+      'owner': 'Elena R. (0.2 km away)',
+      'type': 'Giveaway',
+      'status': 'Free Pick Up',
+      'icon': Icons.inventory_2_rounded,
+    },
+    {
+      'title': 'Portable JBL Party Speaker',
+      'category': 'Party',
+      'owner': 'Chris T. (0.9 km away)',
+      'type': 'Borrow',
+      'status': 'Active Booking',
+      'icon': Icons.speaker_rounded,
+    },
+  ];
+
+  // dri mo request
+  final List<Map<String, dynamic>> _loanRequests = [
+    {
+      'title': 'Bosch Cordless Power Drill',
+      'owner': 'Alex M.',
+      'dates': 'Oct 4 - Oct 6, 2026',
+      'status': 'ACTIVE',
+      'statusColor': Colors.orange,
+      'icon': Icons.build_rounded,
+      'dueText': 'Return due in 2 days',
+    },
+    {
+      'title': '4-Person Camping Tent',
+      'owner': 'Sarah K.',
+      'dates': 'Oct 10 - Oct 12, 2026',
+      'status': 'PENDING',
+      'statusColor': Colors.blue,
+      'icon': Icons.cabin_rounded,
+      'dueText': 'Waiting for owner approval',
+    },
+    {
+      'title': 'High-Yield Blender (Ninja)',
+      'owner': 'Maya B.',
+      'dates': 'Sep 25 - Sep 27, 2026',
+      'status': 'RETURNED',
+      'statusColor': Colors.green,
+      'icon': Icons.soup_kitchen_rounded,
+      'dueText': 'Completed safely',
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFBF4EF),
+      body: Stack(
+        children: [
+          // background first
+          _buildColorfulBackgroundDecoration(),
+
+          IndexedStack(
+            index: _selectedIndex,
+            children: [
+              _buildBrowseTab(),
+              _buildGeoSearchTab(),
+              _buildRequestsTab(),
+            ],
+          ),
+        ],
+      ),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton.extended(
+        onPressed: _showShareItemBottomSheet,
+        backgroundColor: Colors.teal.shade800,
+        elevation: 4,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'Share Item',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      )
+          : null,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(20),
+              blurRadius: 15,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          backgroundColor: Colors.white,
+          indicatorColor: Colors.teal.shade100,
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.storefront_outlined),
+              selectedIcon: Icon(Icons.storefront, color: Colors.teal),
+              label: 'Browse',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.map_outlined),
+              selectedIcon: Icon(Icons.map, color: Colors.teal),
+              label: 'Geo Search',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.swap_horiz_outlined),
+              selectedIcon: Icon(Icons.swap_horiz, color: Colors.teal),
+              label: 'Requests',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // lingin2 sa likod
+  Widget _buildColorfulBackgroundDecoration() {
+    return Stack(
+      children: [
+        Positioned(
+          top: -50,
+          left: -50,
+          child: Container(
+            width: 150,
+            height: 150,
+            decoration: BoxDecoration(color: Colors.pink.shade100, shape: BoxShape.circle),
+          ),
+        ),
+        Positioned(
+          bottom: 100,
+          right: -80,
+          child: Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(color: Colors.orange.shade100, shape: BoxShape.circle),
+          ),
+        ),
+        Positioned(
+          top: 300,
+          left: 40,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(color: Colors.teal.shade100, shape: BoxShape.circle),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+  Widget _buildGradientHeader(String title, String subtitle) {
+    return Container(
+      height: 140,
+      width: double.infinity,
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 50),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.teal.shade800,
+            Colors.green.shade700,
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                  shadows: [Shadow(color: Colors.black.withAlpha(50), blurRadius: 4)],
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 12, color: Colors.teal.shade100),
+              ),
+            ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 26),
+            onPressed: () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  // tab 1
+  Widget _buildBrowseTab() {
+    final filteredItems = _selectedCategory == 'All'
+        ? _items
+        : _items.where((item) => item['category'] == _selectedCategory).toList();
+
+    return Column(
+      children: [
+        _buildGradientHeader('SpotDrop', 'Maplewood Community • 0.5 km radius'),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.orange.shade300, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 8, offset: const Offset(0, 3))
+                    ],
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search tools, camping gear, boxes...',
+                      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                      prefixIcon: const Icon(Icons.search, color: Colors.orange),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // chipsss
+                SizedBox(
+                  height: 40,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final category = _categories[index];
+                      final isSelected = category == _selectedCategory;
+                      final catTheme = _themeColors[category] ?? _themeColors['Default']!;
+
+                      return ChoiceChip(
+                        label: Text(category),
+                        selected: isSelected,
+                        selectedColor: catTheme['primary'],
+                        backgroundColor: Colors.white,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black87,
+                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.normal,
+                          fontSize: 13,
+                        ),
+                        side: isSelected ? BorderSide.none : BorderSide(color: catTheme['primary']!.withAlpha(100)),
+                        onSelected: (_) {
+                          setState(() => _selectedCategory = category);
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 22),
+
+                const Text(
+                  'Community Goods Nearby',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(height: 14),
+
+                // listahan
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: filteredItems.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredItems[index];
+                    final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+
+                    return Card(
+                      elevation: 0,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        side: BorderSide(color: catTheme['primary']!.withAlpha(80)),
+                      ),
+                      child: InkWell(
+                        onTap: () => _showItemDetailsBottomSheet(item),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 65,
+                                height: 65,
+                                decoration: BoxDecoration(
+                                  color: catTheme['bg'],
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: catTheme['primary']!.withAlpha(120)),
+                                ),
+                                child: Icon(
+                                  item['icon'] as IconData,
+                                  color: catTheme['primary'],
+                                  size: 34,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: item['type'] == 'Giveaway'
+                                                ? Colors.purple.shade700
+                                                : catTheme['primary'],
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            (item['type'] as String).toUpperCase(),
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.white,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          item['status'] as String,
+                                          style: TextStyle(fontSize: 11, color: catTheme['primary']),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      item['title'] as String,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.person_outline, size: 13, color: Colors.grey.shade600),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            item['owner'] as String,
+                                            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // map but kailangan e api, same sa gibuhat ni sir, so ilisan ni siya
+  Widget _buildGeoSearchTab() {
+    return Column(
+      children: [
+        _buildGradientHeader('Geo Radius Search', 'Explore interactive neighborhood map'),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.teal.shade200),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.radar_rounded, color: Colors.teal.shade800),
+                              const SizedBox(width: 8),
+                              const Text('Search Radius:', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Text(
+                            '${_searchRadiusKm.toStringAsFixed(1)} km',
+                            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.teal.shade800),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: _searchRadiusKm,
+                        min: 0.5,
+                        max: 5.0,
+                        divisions: 9,
+                        activeColor: Colors.teal.shade700,
+                        inactiveColor: Colors.teal.shade100,
+                        onChanged: (val) => setState(() => _searchRadiusKm = val),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Interactive Map Canvas Card
+                Container(
+                  height: 280,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.teal.shade300, width: 2),
+                    boxShadow: [
+                      BoxShadow(color: Colors.teal.withAlpha(20), blurRadius: 10, offset: const Offset(0, 4))
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Map Background Mock Grid Lines
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: MapGridPainter(),
+                        ),
+                      ),
+
+                      // User Location Pin (Center)
+                      Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.my_location_rounded, color: Colors.blueAccent, size: 36),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: const BoxDecoration(
+                                color: Colors.black87,
+                                borderRadius: BorderRadius.all(Radius.circular(6)),
+                              ),
+                              child: const Text(
+                                'You are here',
+                                style: TextStyle(color: Colors.white, fontSize: 10),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Neighbor Pins Scatter
+                      Positioned(
+                        top: 40,
+                        left: 50,
+                        child: _buildMapPin('Power Drill', Colors.teal, Icons.build),
+                      ),
+                      Positioned(
+                        top: 70,
+                        right: 60,
+                        child: _buildMapPin('Camping Tent', Colors.orange, Icons.cabin),
+                      ),
+                      Positioned(
+                        bottom: 45,
+                        left: 70,
+                        child: _buildMapPin('Lawn Mower', Colors.green, Icons.grass),
+                      ),
+                      Positioned(
+                        bottom: 30,
+                        right: 50,
+                        child: _buildMapPin('Party Speaker', Colors.pink, Icons.speaker),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                const Text(
+                  'Items Pinpointed Nearby',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(height: 10),
+
+                // Nearby Quick Cards
+                SizedBox(
+                  height: 100,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _items.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, idx) {
+                      final item = _items[idx];
+                      final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+                      return Container(
+                        width: 220,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: catTheme['primary']!.withAlpha(80)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: catTheme['bg'], borderRadius: BorderRadius.circular(10)),
+                              child: Icon(item['icon'] as IconData, color: catTheme['primary'], size: 28),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(item['title'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  const SizedBox(height: 4),
+                                  Text(item['owner'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMapPin(String label, Color color, IconData icon) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle, boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)]),
+          child: Icon(icon, color: Colors.white, size: 18),
+        ),
+        const SizedBox(height: 2),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: color)),
+          child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color)),
+        ),
+      ],
+    );
+  }
+
+  // dre mag request, pede rani ilisan kay g kapoi ko
+  Widget _buildRequestsTab() {
+    return Column(
+      children: [
+        _buildGradientHeader('Requests Manager', 'Digital borrowing & lending log'),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: _loanRequests.length,
+            itemBuilder: (context, index) {
+              final req = _loanRequests[index];
+              final Color statusColor = req['statusColor'] as Color;
+
+              return Card(
+                elevation: 0,
+                margin: const EdgeInsets.only(bottom: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: BorderSide(color: statusColor.withAlpha(120), width: 1.5),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: statusColor.withAlpha(30),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(req['icon'] as IconData, color: statusColor, size: 30),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        req['title'] as String,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: statusColor,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        req['status'] as String,
+                                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text('Owner: ${req['owner']}', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                                const SizedBox(height: 2),
+                                Text(req['dates'] as String, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.timer_outlined, size: 14, color: statusColor),
+                              const SizedBox(width: 4),
+                              Text(req['dueText'] as String, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor)),
+                            ],
+                          ),
+                          OutlinedButton(
+                            onPressed: () => _showLogsBottomSheet(req),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: statusColor,
+                              side: BorderSide(color: statusColor),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            ),
+                            child: const Text('View Logs', style: TextStyle(fontSize: 11)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showLogsBottomSheet(Map<String, dynamic> req) {
+    final String status = req['status'] as String;
+    final Color statusColor = req['statusColor'] as Color;
+    final IconData icon = req['icon'] as IconData;
+
+    List<Map<String, dynamic>> logs = [];
+    if (status == 'ACTIVE') {
+      logs = [
+        {
+          'title': 'Request Submitted',
+          'time': 'Oct 4, 2026 • 09:15 AM',
+          'desc': 'Borrow request sent to ${req['owner']}.',
+          'done': true,
+        },
+        {
+          'title': 'Owner Approved',
+          'time': 'Oct 4, 2026 • 10:30 AM',
+          'desc': 'Request accepted. Pickup agreed.',
+          'done': true,
+        },
+        {
+          'title': 'Item Picked Up',
+          'time': 'Oct 4, 2026 • 02:00 PM',
+          'desc': 'Condition verified at pickup.',
+          'done': true,
+        },
+        {
+          'title': 'Return Due',
+          'time': req['dueText'],
+          'desc': 'Scheduled return date: Oct 6, 2026.',
+          'done': false,
+        },
+      ];
+    } else if (status == 'PENDING') {
+      logs = [
+        {
+          'title': 'Request Submitted',
+          'time': 'Oct 10, 2026 • 08:00 AM',
+          'desc': 'Borrow request sent to ${req['owner']}.',
+          'done': true,
+        },
+        {
+          'title': 'Awaiting Approval',
+          'time': 'Pending',
+          'desc': 'Waiting for ${req['owner']} to accept or decline.',
+          'done': false,
+        },
+        {
+          'title': 'Scheduled Pickup',
+          'time': 'Oct 10, 2026',
+          'desc': 'Pending owner response',
+          'done': false,
+        },
+      ];
+    } else {
+      logs = [
+        {
+          'title': 'Request Submitted',
+          'time': 'Sep 25, 2026 • 11:00 AM',
+          'desc': 'Borrow request sent to ${req['owner']}.',
+          'done': true,
+        },
+        {
+          'title': 'Owner Approved',
+          'time': 'Sep 25, 2026 • 11:45 AM',
+          'desc': 'Request approved by ${req['owner']}.',
+          'done': true,
+        },
+        {
+          'title': 'Item Handed Over',
+          'time': 'Sep 25, 2026 • 01:15 PM',
+          'desc': 'Condition logged at pickup.',
+          'done': true,
+        },
+        {
+          'title': 'Item Returned & Closed',
+          'time': 'Sep 27, 2026 • 04:30 PM',
+          'desc': 'Returned safely in good condition.',
+          'done': true,
+        },
+      ];
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: statusColor.withAlpha(30),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(icon, color: statusColor, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          req['title'] as String,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Owner: ${req['owner']} • ${req['dates']}',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      status,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 12),
+              Text(
+                'Activity & Borrowing Logs',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...List.generate(logs.length, (i) {
+                final log = logs[i];
+                final bool isLast = i == logs.length - 1;
+                final bool isDone = log['done'] as bool;
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDone ? statusColor : Colors.grey.shade300,
+                          ),
+                          child: Icon(
+                            isDone ? Icons.check : Icons.circle,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                        if (!isLast)
+                          Container(
+                            width: 2,
+                            height: 36,
+                            color: isDone ? statusColor.withAlpha(120) : Colors.grey.shade300,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  log['title'] as String,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: isDone ? Colors.black87 : Colors.grey.shade600,
+                                  ),
+                                ),
+                                Text(
+                                  log['time'] as String,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              log['desc'] as String,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal.shade800,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Tools':
+        return Icons.build_rounded;
+      case 'Camping':
+        return Icons.cabin_rounded;
+      case 'Garden':
+        return Icons.grass_rounded;
+      case 'Kitchen':
+        return Icons.soup_kitchen_rounded;
+      case 'Party':
+        return Icons.speaker_rounded;
+      case 'Storage':
+        return Icons.inventory_2_rounded;
+      default:
+        return Icons.category_rounded;
+    }
+  }
+
+  void _showShareItemBottomSheet() {
+    final titleController = TextEditingController();
+    final statusController = TextEditingController(text: 'Available Today');
+    String selectedCategory = 'Tools';
+    String selectedType = 'Borrow';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.add_business_rounded, color: Colors.teal.shade800, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Share Item with Neighbors',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Item Title',
+                          hintText: 'e.g. Cordless Drill, Lawn Mower',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.title),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedCategory,
+                        decoration: InputDecoration(
+                          labelText: 'Category',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.category_outlined),
+                        ),
+                        items: ['Tools', 'Camping', 'Garden', 'Kitchen', 'Party', 'Storage']
+                            .map((cat) => DropdownMenuItem(
+                                  value: cat,
+                                  child: Text(cat),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setSheetState(() => selectedCategory = val);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedType,
+                        decoration: InputDecoration(
+                          labelText: 'Listing Type',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.swap_horizontal_circle_outlined),
+                        ),
+                        items: ['Borrow', 'Giveaway']
+                            .map((t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t == 'Borrow' ? 'Borrowable' : 'Free Giveaway'),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setSheetState(() => selectedType = val);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      TextField(
+                        controller: statusController,
+                        decoration: InputDecoration(
+                          labelText: 'Availability Note',
+                          hintText: 'e.g. Available Today, Free Pick Up',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.event_available),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final title = titleController.text.trim();
+                            if (title.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please enter an item title')),
+                              );
+                              return;
+                            }
+
+                            final newItem = {
+                              'title': title,
+                              'category': selectedCategory,
+                              'owner': 'You (0.1 km away)',
+                              'type': selectedType,
+                              'status': statusController.text.trim().isEmpty
+                                  ? 'Available Today'
+                                  : statusController.text.trim(),
+                              'icon': _getCategoryIcon(selectedCategory),
+                            };
+
+                            setState(() {
+                              _items.insert(0, newItem);
+                            });
+
+                            Navigator.pop(context);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('"$title" added to community listings!'),
+                                backgroundColor: Colors.teal.shade800,
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade800,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Post Item',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showItemDetailsBottomSheet(Map<String, dynamic> item) {
+    final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+    final bool isGiveaway = item['type'] == 'Giveaway';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                Container(
+                  width: double.infinity,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    color: catTheme['bg'],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: catTheme['primary']!.withAlpha(80)),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      item['icon'] as IconData,
+                      size: 52,
+                      color: catTheme['primary'],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item['title'] as String,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isGiveaway ? Colors.purple.shade700 : catTheme['primary'],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        (item['type'] as String).toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                Row(
+                  children: [
+                    Icon(Icons.category_outlined, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      item['category'] as String,
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade800, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(width: 14),
+                    Icon(Icons.person_outline, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        item['owner'] as String,
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                Row(
+                  children: [
+                    Icon(Icons.event_available, size: 16, color: catTheme['primary']),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Status: ${item['status']}',
+                      style: TextStyle(fontSize: 13, color: catTheme['primary'], fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 12),
+
+                const Text(
+                  'Item Details & Terms',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'This item is shared by a neighbor for local community ${isGiveaway ? 'giveaway' : 'borrowing'}. Please communicate with the owner for pickup and handle equipment responsibly.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                ),
+
+                const SizedBox(height: 24),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Close'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Request sent for "${item['title']}"!'),
+                              backgroundColor: Colors.teal.shade800,
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal.shade800,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(isGiveaway ? 'Claim Item' : 'Request Item'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Custom Painter for Map Grid Background
+class MapGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.teal.withAlpha(25)
+      ..strokeWidth = 1.5;
+
+    for (double i = 0; i < size.width; i += 30) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double i = 0; i < size.height; i += 30) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
