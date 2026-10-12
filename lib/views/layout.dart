@@ -915,7 +915,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 15),
               const Divider(),
               const SizedBox(height: 12),
               Text(
